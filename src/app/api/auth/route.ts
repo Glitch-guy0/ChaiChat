@@ -105,6 +105,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
     return response;
   } catch (error) {
+    console.error("[auth] POST /api/auth failed:", error);
     if (error instanceof AuthError) {
       switch (error.code) {
         case AuthErrorCode.REDIS_CONNECTION_FAILED:

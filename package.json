@@ -16,6 +16,7 @@
     "dotenv": "^17.4.2",
     "ioredis": "^5.11.1",
     "jose": "^6.2.3",
+    "js-tiktoken": "^1.0.21",
     "next": "16.2.10",
     "openai": "^6.45.0",
     "pg": "^8.22.0",
@@ -25,7 +26,6 @@
     "reflect-metadata": "^0.2.2",
     "sqlite3": "^6.0.1",
     "tailwindcss": "^4.3.2",
-    "tiktoken": "^1.0.22",
     "typeorm": "^1.0.0",
     "uuid": "^14.0.1"
   },
