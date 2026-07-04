@@ -39,7 +39,7 @@ export interface ChatGenerationOptionsBuilderState {
  * const options = builder
  *   .withMode(ChatMode.DRUNK)
  *   .build();
- * // options.temperature === 0.7
+ * // options.temperature === 1.0
  * ```
  */
 export interface IChatGenerationOptionsBuilder {
@@ -104,7 +104,7 @@ export class ChatGenerationOptionsBuilder implements IChatGenerationOptionsBuild
       case ChatMode.NORMAL:
         return 0;
       case ChatMode.DRUNK:
-        return 0.7;
+        return 1.0;
     }
   }
 }

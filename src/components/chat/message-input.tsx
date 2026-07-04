@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, type KeyboardEvent } from "react";
+import { useState, useCallback, useRef, useEffect, type KeyboardEvent } from "react";
 
 /**
  * Props for the MessageInput component.
@@ -42,6 +42,41 @@ export function MessageInput({
   onModeChange,
 }: MessageInputProps) {
   const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus input when component mounts or when re-enabled
+  useEffect(() => {
+    if (!disabled) {
+      inputRef.current?.focus();
+    }
+  }, [disabled]);
+
+  // Global keydown event to focus input when user starts typing
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: globalThis.KeyboardEvent) => {
+      // Do not hijack input if active element is already a form field or contenteditable
+      if (
+        e.metaKey ||
+        e.ctrlKey ||
+        e.altKey ||
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.getAttribute("contenteditable") === "true"
+      ) {
+        return;
+      }
+
+      // Check if pressed key is a single character (printable character)
+      if (e.key.length === 1) {
+        inputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleGlobalKeyDown);
+    };
+  }, []);
 
   const handleSend = useCallback(() => {
     const trimmed = value.trim();
@@ -62,30 +97,9 @@ export function MessageInput({
 
   return (
     <div className="chat-input-bar">
-      {/* Mode Selector */}
-      <div className="chat-input-modes">
-        <button
-          onClick={() => onModeChange("normal")}
-          className={`chat-input-mode-btn ${
-            activeMode === "normal" ? "chat-input-mode-btn--active" : ""
-          }`}
-          type="button"
-        >
-          Normal
-        </button>
-        <button
-          onClick={() => onModeChange("drunk")}
-          className={`chat-input-mode-btn ${
-            activeMode === "drunk" ? "chat-input-mode-btn--active" : ""
-          }`}
-          type="button"
-        >
-          Drunk
-        </button>
-      </div>
-
       {/* Text Input */}
       <input
+        ref={inputRef}
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
