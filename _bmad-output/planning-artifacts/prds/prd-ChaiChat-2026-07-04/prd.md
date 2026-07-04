@@ -48,9 +48,13 @@ The PRD is the source of truth for scope. This version prioritizes architectural
 ### FR-3: Session-Persisted Chat & Switchable Modes
 - **Chat Endpoint:** `POST /api/chat` with user prompt.
 - **Modes:** "Normal" and "Drunk". Managed on hover on the left side of the input.
+- **Mode-to-LLM Mapping:**
+  - `Normal` maps to LLM temperature `0`.
+  - `Drunk` maps to LLM temperature `0.5`.
+- **Generation Options:** Conversation-related LLM controls must be created through a builder-style contract so future controls such as temperature, max tokens, top-p, response format, or safety flags can be added without changing the chat use-case flow.
 - **History Format:**
   - User messages: `{ user: "..." }`
-  - Assistant messages: `{ assistant: "[persona]: ..." }` (e.g. `{ assistant: "hitesh: hello" }`).
+  - Assistant messages: `{ assistant: "[persona-id]: ..." }` (e.g. `{ assistant: "chai: hello" }`).
 - **Session Fetching:** `GET /api/conversation` fetches the conversation history if exists.
 - **Persistence Rule:** Conversation history is retained for the life of the auth session and restored on refresh.
 
@@ -76,7 +80,7 @@ The PRD is the source of truth for scope. This version prioritizes architectural
 
 ## 4. Architectural Specification (Hexagonal Design)
 
-The system adheres to Hexagonal Architecture (Ports and Adapters) to separate core business logic from external drivers and systems (Redis, Sentry, IP-API, OpenAI).
+The system adheres to Hexagonal Architecture (Ports and Adapters) to separate core business logic from external drivers and systems (Redis, Sentry, IP-API, OpenAI). The approved architecture keeps conversation rules in the core and treats external infrastructure as replaceable adapters.
 
 ```mermaid
 graph TD
@@ -93,9 +97,10 @@ graph TD
     end
 
     subgraph Core Domain (Hexagon)
-        DomainModel["Domain Models: ChatSession, Message, Persona"]
+        DomainModel["Domain Models: ChatSession, Message, Persona, GenerationOptions"]
         AuthUseCase["AuthUseCaseImpl"]
         ChatUseCase["ChatUseCaseImpl"]
+        OptionsBuilder["ChatGenerationOptionsBuilder"]
     end
 
     subgraph Driven Ports
@@ -109,7 +114,7 @@ graph TD
         RedisRepo["RedisSessionRepository (Redis DB)"]
         OpenAIGateway["OpenAILLMService (OpenAI SDK + Tiktoken)"]
         IpApiLocation["IpApiLocationService (ip-api.com)"]
-    SentryLogger["PinoBetterStackLogger (BetterStack + Sentry DSN)"]
+        SentryLogger["PinoBetterStackLogger (BetterStack + Sentry DSN)"]
     end
 
     %% Connections
@@ -126,6 +131,7 @@ graph TD
 
     AuthUseCase --> DomainModel
     ChatUseCase --> DomainModel
+    ChatUseCase --> OptionsBuilder
 
     AuthUseCase --> ILocationPort
     AuthUseCase --> ILoggerPort
@@ -162,12 +168,44 @@ export enum ChatMode {
 }
 
 /**
+ * LLM generation settings derived from conversation controls.
+ */
+export interface IChatGenerationOptions {
+  readonly temperature: number;
+}
+
+/**
+ * Builder contract for constructing LLM generation settings from chat controls.
+ */
+export interface IChatGenerationOptionsBuilder {
+  /**
+   * Applies the selected chat mode to the generation options.
+   */
+  withMode(mode: ChatMode): IChatGenerationOptionsBuilder;
+
+  /**
+   * Builds immutable generation options for the LLM port.
+   */
+  build(): IChatGenerationOptions;
+}
+
+/**
  * Data structure representing a chat message.
  */
 export interface IMessage {
   readonly sender: "user" | "ai";
   readonly persona: string;
   readonly content: string;
+}
+
+/**
+ * Request object passed from the chat use case to the LLM port.
+ */
+export interface IChatCompletionRequest {
+  readonly systemPrompt: string;
+  readonly history: ReadonlyArray<IMessage>;
+  readonly activePersona: string;
+  readonly options: IChatGenerationOptions;
 }
 
 /**
@@ -220,10 +258,21 @@ export interface ILLMService {
   /**
    * Generates a streaming response for the selected persona.
    */
-  stream(
-    systemPrompt: string,
-    history: IMessage[],
-    activePersona: string
-  ): Promise<AsyncIterable<string>>;
+  stream(request: IChatCompletionRequest): Promise<AsyncIterable<string>>;
 }
 ```
+
+### 4.2 Conversation Generation Rules
+
+The frontend only sends the selected conversation mode. It does not send raw LLM parameters.
+
+The chat use case maps the selected `ChatMode` into immutable generation options through `IChatGenerationOptionsBuilder`.
+
+Initial mapping:
+
+| Mode | Temperature | Purpose |
+|---|---:|---|
+| `NORMAL` | `0` | Deterministic, controlled persona response |
+| `DRUNK` | `0.5` | Looser, more varied persona response |
+
+Future LLM controls must be added to `IChatGenerationOptions` and the builder implementation. The `IChatUseCase` flow should remain stable unless the user-facing conversation behavior itself changes.
