@@ -22,7 +22,7 @@ interface ChatAreaProps {
   readonly activePersona: string;
   readonly activeMode: string;
   readonly onModeChange: (mode: string) => void;
-  readonly personaAvatarUrl: string;
+  readonly personaAvatars: Readonly<Record<string, string>>;
 }
 
 /**
@@ -51,7 +51,7 @@ export function ChatArea({
   activePersona,
   activeMode,
   onModeChange,
-  personaAvatarUrl,
+  personaAvatars,
 }: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -183,7 +183,7 @@ export function ChatArea({
               key={msg.id}
               content={msg.content}
               persona={msg.persona}
-              avatarUrl={personaAvatarUrl}
+              avatarUrl={personaAvatars[msg.persona] || personaAvatars.hitesh}
             />
           ),
         )}
@@ -192,7 +192,7 @@ export function ChatArea({
           <AIMessageBubble
             content={streamingContent}
             persona={activePersona}
-            avatarUrl={personaAvatarUrl}
+            avatarUrl={personaAvatars[activePersona] || personaAvatars.hitesh}
             isStreaming
           />
         )}
@@ -200,7 +200,7 @@ export function ChatArea({
         {isStreaming && !streamingContent && (
           <div className="chat-typing-indicator">
             <img
-              src={personaAvatarUrl}
+              src={personaAvatars[activePersona] || personaAvatars.hitesh}
               alt={activePersona}
               className="chat-typing-avatar"
             />

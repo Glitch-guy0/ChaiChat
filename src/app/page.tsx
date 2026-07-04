@@ -55,7 +55,7 @@ export default function Home() {
 
           <div className="persona-cards">
             <Link href="/chat?persona=hitesh" className="persona-card persona-card-hitesh">
-              <div className="persona-card-emoji">🍵</div>
+              <img src="/images/hitesh.png" alt="Hitesh" className="persona-card-image" />
               <h2 className="persona-card-name">Hitesh Choudhry</h2>
               <p className="persona-card-role">Backend &amp; System Design Mentor</p>
               <p className="persona-card-desc">
@@ -69,7 +69,7 @@ export default function Home() {
             </Link>
 
             <Link href="/chat?persona=piyush" className="persona-card persona-card-piyush">
-              <div className="persona-card-emoji">🚀</div>
+              <img src="/images/piyush.png" alt="Piyush" className="persona-card-image" />
               <h2 className="persona-card-name">Piyush Garg</h2>
               <p className="persona-card-role">AI &amp; GenAI Engineering Mentor</p>
               <p className="persona-card-desc">

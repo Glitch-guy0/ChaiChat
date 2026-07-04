@@ -14,10 +14,8 @@ import { ChatArea } from "../../components/chat/chat-area";
  * ```
  */
 const PERSONA_AVATARS: Readonly<Record<string, string>> = {
-  hitesh:
-    "https://images.unsplash.com/photo-1633332755192-727a05c4013d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3OTAzMTh8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3J0cmFpdHxlbnwxfHx8fDE3NTQ5MjM3Nzd8MA&ixlib=rb-4.1.0&q=80&w=100",
-  piyush:
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3OTAzMTh8MHwxfHNlYXJjaHwxfHxtYW4lMjBmYWNlfGVufDF8fHx8MTc1NDkyMzc3N3ww&ixlib=rb-4.1.0&q=80&w=100",
+  hitesh: "/images/hitesh.png",
+  piyush: "/images/piyush.png",
 };
 
 /**
@@ -42,8 +40,9 @@ function ChatContent() {
       {/* Radial gradient glow at top */}
       <div className="chat-top-glow" aria-hidden="true" />
 
-      <div className="chat-container">
-        {/* Header */}
+      {/* Top Navigation - Full Width */}
+      <nav className="chat-top-nav">
+        {/* Header Logo */}
         <header className="chat-header">
           <Link href="/" className="chat-header-logo">
             <span className="chat-header-logo-icon">🍵</span>
@@ -80,13 +79,15 @@ function ChatContent() {
             <span className="chat-persona-name">Piyush</span>
           </button>
         </div>
+      </nav>
 
+      <div className="chat-container">
         {/* Chat Area */}
         <ChatArea
           activePersona={activePersona}
           activeMode={activeMode}
           onModeChange={setActiveMode}
-          personaAvatarUrl={PERSONA_AVATARS[activePersona] || PERSONA_AVATARS.hitesh}
+          personaAvatars={PERSONA_AVATARS}
         />
       </div>
     </div>

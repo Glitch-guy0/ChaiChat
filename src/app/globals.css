@@ -1,21 +1,25 @@
 @import "tailwindcss";
 
 /* Reset & Base Styles */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
 :root {
-  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans:
+    var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
   --font-mono: var(--font-geist-mono), Courier, monospace;
 
   /* Color Palette - Premium Dark Theme with Amber Gold Accents */
   --bg-primary: #0a0908;
   --bg-secondary: #141210;
   --bg-tertiary: #1c1a16;
-  
+
   --accent-primary: #e6a15c; /* Warm tea / Chai gold */
   --accent-secondary: #c28344;
   --accent-light: rgba(230, 161, 92, 0.15);
@@ -30,13 +34,15 @@
 
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 80px rgba(230, 161, 92, 0.05);
+  --shadow-lg:
+    0 16px 40px rgba(0, 0, 0, 0.8), 0 0 80px rgba(230, 161, 92, 0.05);
 
   --transition-smooth: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-bounce: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
   background-color: var(--bg-primary);
@@ -66,7 +72,11 @@ html, body {
   width: 60vw;
   height: 60vw;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(230, 161, 92, 0.06) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(230, 161, 92, 0.06) 0%,
+    transparent 70%
+  );
   filter: blur(80px);
   pointer-events: none;
 }
@@ -78,7 +88,11 @@ html, body {
   width: 50vw;
   height: 50vw;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(194, 131, 68, 0.05) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(194, 131, 68, 0.05) 0%,
+    transparent 70%
+  );
   filter: blur(100px);
   pointer-events: none;
 }
@@ -117,7 +131,12 @@ html, body {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent-primary),
+    transparent
+  );
   opacity: 0.8;
 }
 
@@ -164,7 +183,12 @@ html, body {
 }
 
 .title-accent {
-  background: linear-gradient(135deg, #ffd1a4 0%, var(--accent-primary) 50%, var(--accent-secondary) 100%);
+  background: linear-gradient(
+    135deg,
+    #ffd1a4 0%,
+    var(--accent-primary) 50%,
+    var(--accent-secondary) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -214,7 +238,9 @@ html, body {
 
 .btn-primary:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 20px var(--accent-glow), 0 0 0 4px rgba(230, 161, 92, 0.2);
+  box-shadow:
+    0 6px 20px var(--accent-glow),
+    0 0 0 4px rgba(230, 161, 92, 0.2);
 }
 
 .btn-primary:active {
@@ -388,12 +414,16 @@ html, body {
 
 .persona-card-hitesh:hover {
   border-color: rgba(74, 222, 128, 0.2);
-  box-shadow: var(--shadow-lg), 0 0 40px rgba(74, 222, 128, 0.06);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 40px rgba(74, 222, 128, 0.06);
 }
 
 .persona-card-piyush:hover {
   border-color: rgba(167, 139, 250, 0.2);
-  box-shadow: var(--shadow-lg), 0 0 40px rgba(167, 139, 250, 0.06);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 40px rgba(167, 139, 250, 0.06);
 }
 
 .persona-card-hitesh:active {
@@ -404,10 +434,13 @@ html, body {
   transform: translateY(-3px);
 }
 
-.persona-card-emoji {
-  font-size: 3.5rem;
+.persona-card-image {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
   margin-bottom: 1rem;
-  line-height: 1;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .persona-card-name {
@@ -547,6 +580,8 @@ html, body {
   min-height: 100vh;
   min-width: 100vw;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-top-glow {
@@ -563,6 +598,28 @@ html, body {
   z-index: 0;
 }
 
+/* ---- Top Navigation ---- */
+
+.chat-top-nav {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  width: 100%;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .chat-top-nav {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 1rem;
+  }
+}
+
 .chat-container {
   position: relative;
   z-index: 10;
@@ -570,9 +627,9 @@ html, body {
   flex-direction: column;
   max-width: 760px;
   width: 100%;
-  height: 100vh;
+  flex: 1;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem 2rem 2rem 2rem;
 }
 
 /* ---- Header ---- */
@@ -580,8 +637,13 @@ html, body {
 .chat-header {
   display: flex;
   align-items: center;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  justify-self: start;
+}
+
+@media (max-width: 600px) {
+  .chat-header {
+    justify-self: center;
+  }
 }
 
 .chat-header-logo {
@@ -619,7 +681,7 @@ html, body {
   justify-content: center;
   align-items: center;
   gap: 1rem;
-  padding: 1.5rem 0;
+  justify-self: center;
 }
 
 .chat-persona-btn {
@@ -895,7 +957,9 @@ html, body {
 /* ---- Animations ---- */
 
 @keyframes typingBounce {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: translateY(0);
   }
   40% {
@@ -904,6 +968,11 @@ html, body {
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
