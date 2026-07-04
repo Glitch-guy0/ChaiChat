@@ -2,7 +2,7 @@
 title: "ChaiChat — Backend Architecture Reference"
 status: approved
 created: 2026-07-04
-updated: 2026-07-04
+updated: 2026-07-05
 source: class.md, dependency.md, sequence.md
 ---
 
@@ -696,10 +696,23 @@ flowchart TD
 
 ---
 
+## Deviations: Planned vs Built
+
+The following differences exist between this architecture document and the actual implementation:
+
+| Aspect | Planned | Built | Impact |
+|---|---|---|---|
+| **DI strategy** | Route handlers use a DI container | Lazy singleton instantiation in route handlers | Functional equivalent; container abstraction not needed for single-user scope |
+| **Builder pattern** | `IChatGenerationOptionsBuilder` as formal interface | `ChatGenerationOptionsBuilder` called directly by `ChatUseCase` | Equivalent; builder is a utility, not a port |
+| **Token counter** | `ITokenCounter` as application-layer port | Defined in `src/infrastructure/token-counter/token-counter.ts` | Minor — counter is infrastructure-local, not an exposed port |
+| **JWT payload** | `IAuthTokenPayload` interface in `src/types/` | `ChaiChatJWTPayload` type in JWT utility | Both are typed; naming differs |
+| **Cookie name** | Not specified | `auth` | Acceptable — no contract violation |
+
+**None of these deviations break the architecture rules.** The hexagonal layering, SOLID compliance, dependency inversion, and interface-driven design are all intact.
+
 ## Architecture Decisions
 
 | Decision | Rationale |
-|---|---|
 | **Hexagonal architecture** | Clean separation lets us swap infrastructure without touching use cases. Proves SOLID compliance. |
 | **Streaming via `AsyncIterable`** | Use case returns a token stream; route adapter chooses how to deliver it (SSE, WebSocket, etc.). |
 | **Builder pattern for generation options** | Adding `maxTokens`, `topP`, or future parameters extends the builder, not the use case signature. |

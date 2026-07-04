@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ChaiChat — Dual-Persona AI Chat Application
+
+Connect and converse with your favorite mentors. ChaiChat is a two-page AI chat app where you choose between **Hitesh Choudhry** (Backend & System Design Mentor) and **Piyush Garg** (AI & GenAI Engineering Mentor), then toggle between **Normal** and **Drunk** response modes for four distinct conversational voices.
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router, TypeScript) |
+| UI | React 19, Tailwind CSS v4, Custom CSS design tokens |
+| LLM | OpenAI SDK (streaming completions) |
+| Tokenization | `js-tiktoken` (GPT-4 encoding) |
+| Session | Redis via `ioredis` (1-hour TTL) |
+| Auth | JWT via `jose` (HMAC-SHA256, HTTP-only cookies) |
+| Logging | Pino (pino-pretty in dev, Better Stack in production) |
+| Geolocation | ip-api.com (optional, graceful degradation) |
+
+## Architecture
+
+Hexagonal (ports & adapters) architecture with strict layer separation:
+
+```
+Primary Adapters (app/api/*) → Application Core (use-cases) → Ports (interfaces) → Infrastructure Adapters
+```
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+cp .env.example .env.local
+# Fill in your OPENAI_API_KEY and REDIS_URL
+
+docker compose up -d   # Starts Redis
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+  app/              # Next.js App Router pages and API routes
+    api/auth/       # POST /api/auth — session initialization
+    api/chat/       # POST /api/chat — SSE streamed chat completions
+    api/conversation/ # GET /api/conversation — history restore
+    chat/           # Chat page with persona switcher
+    page.tsx        # Landing page with persona cards
+  application/      # Use cases (AuthUseCase, ChatUseCase, ConversationUseCase)
+  components/chat/  # Client components (ChatArea, MessageInput, bubbles)
+  domain/           # Domain models (ChatSession)
+  errors/           # Typed error classes (AuthError, ChatError)
+  infrastructure/   # Adapters (Redis, OpenAI, Pino, IP-API, FilePersonaCatalog)
+  ports/            # Driven port interfaces
+  types/            # Domain contracts and utility types
+persona/            # Persona definitions (Markdown + frontmatter)
+```
 
-## Learn More
+## Key Features
 
-To learn more about Next.js, take a look at the following resources:
+- **Two AI personas** with distinct system prompts and visual identities
+- **Normal / Drunk** chat modes (temperature 0 vs 0.5)
+- **Real-time streaming** via Server-Sent Events
+- **Session persistence** in Redis with 1-hour TTL
+- **Conversation restore** on page refresh via JWT-authenticated API
+- **Dark theme** with amber/gold tea-inspired design system
+- **Optional location metadata** via IP geolocation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment Variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `.env.example` for all required and optional variables.

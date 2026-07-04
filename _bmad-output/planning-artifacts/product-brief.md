@@ -1,8 +1,8 @@
 ---
 title: "ChaiChat — Dual-Persona AI Chat Application"
-status: final
+status: implemented
 created: 2026-07-04
-updated: 2026-07-04
+updated: 2026-07-05
 ---
 
 # ChaiChat — Product Brief
@@ -38,12 +38,12 @@ This is not a market-gap product. ChaiChat is a **deliberate architecture exerci
 - Switching personas does **not** reset or clear the conversation history.
 - The AI simply begins responding as the newly selected persona from that point forward.
 
-**Chat Mode Selector (Left Side)**
-- A dropdown control on the left side of the chat region.
-- Appears on hover; reveals two options: **"Normal"** and **"Drunk"**.
+**Chat Mode Selector (Input Bar)**
+- Pill toggle integrated into the message input bar (left side).
+- Two options: **"Normal"** and **"Drunk"** pill buttons.
 - Selecting a mode changes the tone/style of all *future* AI responses.
 - Default mode: Normal.
-- "Drunk" mode produces looser, more chaotic, humorous responses from the same persona.
+- "Drunk" mode produces looser, more chaotic, humorous responses (temperature 0.5).
 
 **Chat Interface (WhatsApp-Style)**
 - User messages: right-aligned bubbles.
@@ -69,8 +69,10 @@ Each persona is defined by:
 
 | Persona | Name | Personality | Normal Style | Drunk Style |
 |---|---|---|---|---|
-| **A** | **Chai** | A warm, wise conversationalist who speaks like a thoughtful mentor over a cup of tea. Calm, philosophical, occasionally poetic. | Measured, insightful, articulate | Rambling wisdom, overly sentimental, tangential stories |
-| **B** | **Espresso** | A sharp, witty, fast-talking personality with high energy. Direct, sarcastic, always has an opinion. | Rapid-fire, clever, slightly provocative | Unfiltered hot takes, chaotic energy, typos and broken thoughts |
+| **Hitesh** | **Hitesh Choudhry** | Backend & System Design Mentor. Warm, approachable, Hinglish speech with "ji" suffix. | Measured, insightful, mentor-like | Loose, tangential backend rants |
+| **Piyush** | **Piyush Garg** | AI & GenAI Engineering Mentor. Energetic, sharp, thinks out loud in Hinglish. | Rapid-fire, clever, intuition-first | Unfiltered hot takes, chaotic energy |
+
+> **Note:** The original brief specified "Chai" and "Espresso" as placeholder personas. The implementation uses real mentor personas (Hitesh Choudhry, Piyush Garg) with distinct visual identities and system prompts. Persona definitions live in `persona/*.md` files.
 
 ---
 
@@ -119,25 +121,26 @@ These are the real deliverables — the chat UI is the vehicle, the architecture
 
 ## Conversation State
 
-- **Ephemeral.** Chat history lives in client-side state (React state / context). Refreshing the page clears the conversation.
-- **No database persistence for messages in v1.** TypeORM is installed for architecture readiness but conversation storage is not a v1 requirement.
-- **Context window management.** Use tiktoken to track token usage and truncate older messages when approaching the model's context limit.
-
-Conversation history is ephemeral (in-memory, client-side). The DI-based architecture means wiring persistence later requires zero changes to the chat service interface — just implement the storage repository interface and inject it.
+- **Persistent within session.** Chat history is stored in Redis with 1-hour TTL, keyed by JWT token hash. Refreshing the page restores the conversation.
+- **Context window management.** `tiktoken` tracks token usage per prompt/response. Conversation truncation is not yet implemented but the architecture supports it.
+- **Session auth.** JWT HTTP-only cookie gates all API endpoints. Redis session has matching 1-hour TTL.
 
 ---
 
 ## Scope Boundaries
 
-### In Scope (v1 — Final Version)
-- Landing page with two selectable personas.
-- Chat page with persona switcher, mode selector, WhatsApp-style chat.
-- OpenAI integration with streaming responses.
+### In Scope (v1 — Implemented)
+- Landing page with two persona cards (Hitesh, Piyush) with avatars and click-to-chat navigation.
+- Chat page with persona switcher (top navigation), mode pills (input bar), WhatsApp-style bubbles.
+- OpenAI integration with streaming responses (SSE).
 - Four voice combinations (2 personas × 2 modes).
-- Premium dark-theme styling with animations.
-- Clean, well-documented, SOLID-compliant architecture.
+- Premium dark-theme styling with tea-themed amber/gold design tokens.
+- Session auth via JWT HTTP-only cookie.
+- Conversation persistence in Redis (1-hour TTL, restores on refresh).
+- Token counting via `tiktoken` (logged per session).
+- Clean, well-documented, SOLID-compliant hexagonal architecture.
 - Pino structured logging.
-- OpenTelemetry tracing setup.
+- Optional IP geolocation logging during auth.
 
 ### Out of Scope (Permanently)
 - Authentication / user accounts.
