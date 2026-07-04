@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PRD Validation: ChaiChat Hexagonal PoC</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+    --grade-exc: #16a34a;
+    --grade-good: #65a30d;
+    --grade-fair: #d97706;
+    --grade-poor: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .grade {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: white;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .grade-fair { background: var(--grade-fair); }
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+  .dimension-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+  section.dimension { margin-bottom: 14px; }
+  section.dimension details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before {
+    content: "\25B8";
+    display: inline-block;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 {
+    display: inline;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .verdict-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment { color: var(--text); font-size: 14.5px; }
+  .dim-judgment p { margin: 0 0 10px; }
+  .findings-list { padding: 0 20px 4px; }
+  article.finding {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  article.finding:first-child { border-top: none; }
+  article.finding header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234, 88, 12, 0.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220, 38, 38, 0.14); color: var(--sev-critical); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+  .mechanical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  .mechanical li { margin-bottom: 4px; color: var(--text); }
+  footer.report-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header class="report-header">
+      <div class="title">
+        <h1>ChaiChat Hexagonal PoC — Validation Report</h1>
+        <div class="subtitle">_bmad-output/planning-artifacts/prds/prd-ChaiChat-2026-07-04/prd.md</div>
+      </div>
+      <div class="grade grade-fair">FAIR</div>
+    </header>
+
+    <div class="synthesis">
+      <p>A lean, honest document that earns its content — but its honesty reveals gaps. It's an architecture specification dressed as a PRD, making it strong for engineering extraction and weak for product decision-making. The absence of trade-offs, acceptance criteria, user journeys, and open questions limits its usefulness to a narrow audience (implementers) while shortchanging the product and UX stakeholders who would normally drive its requirements.</p>
+    </div>
+
+    <div class="dimension-summary">
+      <div class="dim-card"><div class="dim-name">Decision-readiness</div><div class="dim-verdict" style="color: var(--verdict-thin)">thin</div></div>
+      <div class="dim-card"><div class="dim-name">Substance over theater</div><div class="dim-verdict" style="color: var(--verdict-strong)">strong</div></div>
+      <div class="dim-card"><div class="dim-name">Strategic coherence</div><div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div></div>
+      <div class="dim-card"><div class="dim-name">Done-ness clarity</div><div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div></div>
+      <div class="dim-card"><div class="dim-name">Scope honesty</div><div class="dim-verdict" style="color: var(--verdict-thin)">thin</div></div>
+      <div class="dim-card"><div class="dim-name">Downstream usability</div><div class="dim-verdict" style="color: var(--verdict-thin)">thin</div></div>
+      <div class="dim-card"><div class="dim-name">Shape fit</div><div class="dim-verdict" style="color: var(--verdict-thin)">thin</div></div>
+    </div>
+
+    <section class="dimension">
+      <details open>
+        <summary>
+          <h2>Decision-readiness</h2>
+          <span class="verdict-pill verdict-thin">thin</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The PRD is entirely declarative. It states what will be built but never considers alternatives, surfaces tensions, or flags unresolved questions. A decision-maker can approve or reject, but cannot evaluate <em>whether</em> this is the right approach or <em>what</em> was traded off.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">HIGH</span>
+              <h3 class="finding-title">No trade-offs discussed</h3>
+              <span class="finding-location">§3, §4</span>
+            </header>
+            <div class="finding-note">Every architectural choice (Redis, ip-api.com, Sentry, tiktoken, 1-hour TTL, temperature mapping) is presented as settled. No rationale for selection.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a trade-offs subsection per major decision or an appendix capturing alternatives considered and rejected.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">HIGH</span>
+              <h3 class="finding-title">No open questions</h3>
+              <span class="finding-location">§3, §4</span>
+            </header>
+            <div class="finding-note">The document has zero open questions. For a draft PoC PRD this is implausible. Questions around Redis vs in-memory fallback, what happens when ip-api.com is unreachable, or how persona files are distributed are all unasked.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add an Open Questions section before non-goals with at least 3-5 unresolved items.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Substance over theater</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The PRD earns its length (296 lines). No persona exercises pretending to be research, no innovation boilerplate, no aspirational NFR tables. "Proof-of-concept application that demonstrates a hexagonal architecture" — honest positioning. "Architectural clarity over production-hardening" — clear priority signal. Every requirement directly serves the stated thesis.</p>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Strategic coherence</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The thesis is stated and the FRs are consistent with it. FR-1 through FR-5 each demonstrate a hexagonal boundary concern. Non-goals reinforce the scope.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">MEDIUM</span>
+              <h3 class="finding-title">No counter-metrics or validation criteria</h3>
+              <span class="finding-location">§2</span>
+            </header>
+            <div class="finding-note">The thesis "architectural clarity over production-hardening" has no measurable consequence. How will we know if hexagonal architecture succeeded? Fewer lines changed per dependency swap?</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add 1-2 success criteria (e.g., "swap Redis for SQLite in < 2 files, zero core changes").</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Done-ness clarity</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>For an architecture PoC, the FR detail is unusually specific (JWT payload shape, temperature values, endpoint paths, exact third-party APIs). An engineer could implement from the spec. However, this is achieved through technical over-specification rather than explicit done-ness criteria.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">HIGH</span>
+              <h3 class="finding-title">No acceptance criteria per FR</h3>
+              <span class="finding-location">§3</span>
+            </header>
+            <div class="finding-note">Each FR is a list of behaviors, but none include a testable outcome. E.g. FR-5 specifies tools (tiktoken, pino, Sentry) but not what "done" means for observability.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a Verification line per FR.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">MEDIUM</span>
+              <h3 class="finding-title">Logging schema undefined</h3>
+              <span class="finding-location">FR-5 §3, line 71</span>
+            </header>
+            <div class="finding-note">"Output structured JSON via pino" — which fields? What correlation ID ties auth, chat, and location events together?</div>
+            <div class="finding-fix"><strong>Fix:</strong> Define a 5-8 field log schema (timestamp, level, requestId, event type, message, metadata).</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details open>
+        <summary>
+          <h2>Scope honesty</h2>
+          <span class="verdict-pill verdict-thin">thin</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>FR-6 lists three non-goals (OpenTelemetry, security hardening, multi-user). These are honest but insufficient. Several major scope boundaries are implied without being made explicit.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">HIGH</span>
+              <h3 class="finding-title">Implicit omissions not called out</h3>
+              <span class="finding-location">FR-6</span>
+            </header>
+            <div class="finding-note">No mention of: UI design/accessibility scope, deployment/infra, rate limiting, error page UX, or test strategy.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add more non-goals or [DEFERRED] annotations on FRs where full production treatment is skipped.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">MEDIUM</span>
+              <h3 class="finding-title">No [ASSUMPTION] tags anywhere</h3>
+              <span class="finding-location">line 36, lines 66-68</span>
+            </header>
+            <div class="finding-note">Assumes client can be trusted as sole source of user identity. Assumes ip-api.com availability. None are flagged.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add inline [ASSUMPTION] tags on unverified inferences.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details open>
+        <summary>
+          <h2>Downstream usability</h2>
+          <span class="verdict-pill verdict-thin">thin</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The PRD enables clean architecture extraction (interfaces, diagrams, sequence flows), but provides almost nothing for UX or story creation.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">CRITICAL</span>
+              <h3 class="finding-title">No user journeys or protagonists</h3>
+              <span class="finding-location">§2, §3</span>
+            </header>
+            <div class="finding-note">A consumer chat app PRD without a single named user or journey. There is no protagonist to empathize with, no flow to design screens around.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add 3-4 User Journeys (UJ-1 through UJ-4) covering: first visit, returning session, persona switching, and error recovery.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">HIGH</span>
+              <h3 class="finding-title">No glossary</h3>
+              <span class="finding-location">§1</span>
+            </header>
+            <div class="finding-note">Terms like persona, mode, session, drunk are used without definition. "Mode" and "persona" could be confused.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add a Glossary with 6-10 entries before §1.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">MEDIUM</span>
+              <h3 class="finding-title">IMetricsLogger drift</h3>
+              <span class="finding-location">§4 diagram, line 117</span>
+            </header>
+            <div class="finding-note">Diagram references ILoggerPort/IMetricsLogger but the code section omits this interface entirely.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Add the missing interface to §4.1.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="dimension">
+      <details open>
+        <summary>
+          <h2>Shape fit</h2>
+          <span class="verdict-pill verdict-thin">thin</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>The rubric expects consumer products to lean on User Journeys as load-bearing structures. This PRD has zero UJs and is organized around FRs and architecture diagrams. The architectural PoC framing partially justifies this shape, but a document titled "Product Requirements Document" for a chat application that omits the user experience is mismatched.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">CRITICAL</span>
+              <h3 class="finding-title">Architecture spec shaped as PRD</h3>
+              <span class="finding-location">entire document</span>
+            </header>
+            <div class="finding-note">The centerpiece is the hexagonal diagram and TypeScript interfaces. A consumer product PRD's centerpiece should be user journeys.</div>
+            <div class="finding-fix"><strong>Fix:</strong> Restructure with UJs as §3, push FRs to §5, and demote architecture to §6.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <div class="mechanical">
+      <h3>Mechanical notes</h3>
+      <ul>
+        <li><strong>Title drift:</strong> Frontmatter "Hexagonal Architecture PoC PRD" vs §1 "Dual-Persona AI Chat Application"</li>
+        <li><strong>Status drift:</strong> Frontmatter <code>status: draft</code> vs §1 "Status: Draft (Hexagonal Update)"</li>
+        <li><strong>Missing port contracts:</strong> Diagram references IAuthUseCase, IChatUseCase, ILoggerPort/IMetricsLogger but §4.1 omits them. Only 9 of ~12 contracts defined.</li>
+        <li><strong>No cross-references:</strong> FRs do not reference each other (e.g., FR-3's session fetch does not cite FR-1's auth token or FR-4's Redis TTL).</li>
+      </ul>
+    </div>
+
+    <footer class="report-footer">
+      <div class="meta">
+        <span>Rubric: assets/prd-validation-checklist.md</span>
+        <span>Generated: 2026-07-04</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
