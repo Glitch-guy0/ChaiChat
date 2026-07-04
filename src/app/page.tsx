@@ -2,18 +2,18 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 
 /**
  * Landing page for ChaiChat.
  *
- * On mount, fires POST /api/auth with a uuidv4 userId and user-agent
- * header to initialize the session. The response sets an HTTP-only
- * cookie used for subsequent API calls.
+ * Presents two AI persona cards — Hitesh Choudhry and Piyush Garg.
+ * Clicking a card navigates to /chat with the persona pre-selected.
+ * On mount, fires POST /api/auth to initialize the session.
  *
  * @example
  * ```tsx
- * // This is the root page — accessible at /
- * // After auth, the user can navigate to /chat
+ * // Route: /
  * ```
  */
 export default function Home() {
@@ -23,115 +23,75 @@ export default function Home() {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
-    const userId = uuidv4();
-
     fetch("/api/auth", {
       method: "POST",
       headers: {
         "new-user": "true",
         "user-agent": navigator.userAgent,
       },
-    }).catch(() => {
-      // Auth failure is non-critical on landing — user can still browse
-    });
+    }).catch(() => {});
   }, []);
 
   return (
     <>
-      {/* Background Glows */}
       <div className="bg-glow-container" aria-hidden="true">
         <div className="bg-glow-1" />
         <div className="bg-glow-2" />
       </div>
 
-      {/* Main Layout Container */}
       <div className="layout-wrapper">
-        <main className="glass-container">
-          {/* Logo */}
-          <div className="logo-container" aria-label="ChaiChat Logo">
-            ☕
+        <main className="landing-content">
+          <div className="landing-header">
+            <div className="landing-logo" aria-label="ChaiChat Logo">
+              ☕
+            </div>
+            <h1 className="landing-title">
+              Welcome to <span className="title-accent">ChaiChat</span>
+            </h1>
+            <p className="landing-subtitle">
+              Pick a mentor and start a conversation.
+            </p>
           </div>
 
-          {/* Badge */}
-          <div className="badge">Next.js & TypeScript Active</div>
-
-          {/* Title */}
-          <h1 className="title">
-            Welcome to <span className="title-accent">ChaiChat</span>
-          </h1>
-
-          {/* Description */}
-          <p className="description">
-            A premium, high-fidelity web application setup. Experience
-            real-time connections, sleek dark aesthetics, and seamless
-            performance powered by Next.js App Router.
-          </p>
-
-          {/* Action Buttons */}
-          <div className="actions">
-            <a href="/chat" className="btn btn-primary">
-              Start Chatting
-            </a>
-            <a
-              href="https://nextjs.org/docs"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secondary"
-            >
-              Documentation
-            </a>
-          </div>
-
-          {/* Feature Grid */}
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon">✨</div>
-              <h3 className="feature-title">App Router Ready</h3>
-              <p className="feature-desc">
-                Leveraging the latest layouts and Server Components.
+          <div className="persona-cards">
+            <Link href="/chat?persona=hitesh" className="persona-card persona-card-hitesh">
+              <div className="persona-card-emoji">🍵</div>
+              <h2 className="persona-card-name">Hitesh Choudhry</h2>
+              <p className="persona-card-role">Backend &amp; System Design Mentor</p>
+              <p className="persona-card-desc">
+                Warm, approachable, and full of wisdom. Hitesh breaks down complex
+                backend concepts with the clarity of someone who&apos;s taught thousands.
               </p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">🛡️</div>
-              <h3 className="feature-title">TypeScript Built</h3>
-              <p className="feature-desc">
-                Strongly typed codebase for rock-solid reliability.
+              <span className="persona-card-cta">
+                Chat with Hitesh
+                <span className="persona-card-arrow">&rarr;</span>
+              </span>
+            </Link>
+
+            <Link href="/chat?persona=piyush" className="persona-card persona-card-piyush">
+              <div className="persona-card-emoji">🚀</div>
+              <h2 className="persona-card-name">Piyush Garg</h2>
+              <p className="persona-card-role">AI &amp; GenAI Engineering Mentor</p>
+              <p className="persona-card-desc">
+                Sharp, energetic, and always on the cutting edge. Piyush dives deep
+                into modern AI engineering, LLMs, and production systems.
               </p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">🎨</div>
-              <h3 className="feature-title">Vanilla CSS</h3>
-              <p className="feature-desc">
-                Crafted styling using modern CSS variables.
-              </p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon">⚡</div>
-              <h3 className="feature-title">High Performance</h3>
-              <p className="feature-desc">
-                Optimized asset loading and fast interactive responses.
-              </p>
-            </div>
+              <span className="persona-card-cta">
+                Chat with Piyush
+                <span className="persona-card-arrow">&rarr;</span>
+              </span>
+            </Link>
           </div>
         </main>
 
-        {/* Footer */}
         <footer className="footer">
           <p>
             Powered by{" "}
-            <a
-              href="https://nextjs.org"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://nextjs.org" target="_blank" rel="noopener noreferrer">
               Next.js
             </a>{" "}
             &amp;{" "}
-            <a
-              href="https://typescriptlang.org"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="https://typescriptlang.org" target="_blank" rel="noopener noreferrer">
               TypeScript
             </a>
           </p>

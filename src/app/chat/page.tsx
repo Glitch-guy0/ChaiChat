@@ -1,22 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ChatArea } from "../../components/chat/chat-area";
 
 /**
  * Chat page — the main conversation interface.
  *
+ * Reads the initial persona from the `persona` query parameter
+ * (e.g. `/chat?persona=piyush`), falling back to `hitesh`.
+ *
  * Three-zone layout: top bar (persona switcher + mode selector),
  * chat area (messages + input).
- *
- * @example
- * ```tsx
- * // Route: /chat
- * ```
  */
-export default function ChatPage() {
-  const [activePersona, setActivePersona] = useState("hitesh");
+function ChatContent() {
+  const searchParams = useSearchParams();
+  const [activePersona, setActivePersona] = useState(
+    searchParams.get("persona") || "hitesh",
+  );
   const [activeMode, setActiveMode] = useState("normal");
 
   return (
@@ -84,5 +86,22 @@ export default function ChatPage() {
       {/* Chat Area */}
       <ChatArea activePersona={activePersona} activeMode={activeMode} />
     </div>
+  );
+}
+
+/**
+ * Wraps ChatContent in a Suspense boundary for useSearchParams.
+ */
+export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-neutral-950 text-neutral-400">
+          Loading...
+        </div>
+      }
+    >
+      <ChatContent />
+    </Suspense>
   );
 }
