@@ -3,7 +3,7 @@
  *
  * Each mode maps to a distinct temperature setting:
  * - `NORMAL` → temperature 0 (deterministic, focused)
- * - `DRUNK` → temperature 0.5 (creative, loose)
+ * - `DRUNK` → temperature 0.7 (creative, loose)
  *
  * @example
  * ```ts
