@@ -5,6 +5,9 @@ import { UserMessageBubble } from "./user-message-bubble";
 import { AIMessageBubble } from "./ai-message-bubble";
 import { MessageInput } from "./message-input";
 
+/**
+ * Single chat message model.
+ */
 interface Message {
   readonly id: string;
   readonly sender: "user" | "assistant";
@@ -12,23 +15,44 @@ interface Message {
   readonly content: string;
 }
 
+/**
+ * Props for the ChatArea component.
+ */
 interface ChatAreaProps {
   readonly activePersona: string;
   readonly activeMode: string;
+  readonly onModeChange: (mode: string) => void;
+  readonly personaAvatarUrl: string;
 }
 
 /**
  * Main chat container with message list, streaming, and input.
  *
  * Fetches conversation history on mount. Streams new responses
- * via SSE. Includes the message input bar at the bottom.
+ * via SSE. Includes the message input bar at the bottom with
+ * an integrated mode selector.
+ *
+ * @param props.activePersona - Currently selected persona identifier.
+ * @param props.activeMode - Current chat mode ("normal" | "drunk").
+ * @param props.onModeChange - Callback to change the chat mode.
+ * @param props.personaAvatarUrl - Avatar URL for the active persona.
  *
  * @example
  * ```tsx
- * <ChatArea activePersona="chai" activeMode="normal" />
+ * <ChatArea
+ *   activePersona="hitesh"
+ *   activeMode="normal"
+ *   onModeChange={setMode}
+ *   personaAvatarUrl="https://..."
+ * />
  * ```
  */
-export function ChatArea({ activePersona, activeMode }: ChatAreaProps) {
+export function ChatArea({
+  activePersona,
+  activeMode,
+  onModeChange,
+  personaAvatarUrl,
+}: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
@@ -142,11 +166,11 @@ export function ChatArea({ activePersona, activeMode }: ChatAreaProps) {
   );
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="chat-area">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-1">
+      <div className="chat-messages">
         {messages.length === 0 && !isStreaming && (
-          <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
+          <div className="chat-messages-empty">
             Start a conversation...
           </div>
         )}
@@ -159,6 +183,7 @@ export function ChatArea({ activePersona, activeMode }: ChatAreaProps) {
               key={msg.id}
               content={msg.content}
               persona={msg.persona}
+              avatarUrl={personaAvatarUrl}
             />
           ),
         )}
@@ -167,15 +192,36 @@ export function ChatArea({ activePersona, activeMode }: ChatAreaProps) {
           <AIMessageBubble
             content={streamingContent}
             persona={activePersona}
+            avatarUrl={personaAvatarUrl}
             isStreaming
           />
+        )}
+
+        {isStreaming && !streamingContent && (
+          <div className="chat-typing-indicator">
+            <img
+              src={personaAvatarUrl}
+              alt={activePersona}
+              className="chat-typing-avatar"
+            />
+            <div className="chat-typing-dots">
+              <span className="chat-typing-dot" />
+              <span className="chat-typing-dot" />
+              <span className="chat-typing-dot" />
+            </div>
+          </div>
         )}
 
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <MessageInput onSend={handleSend} disabled={isStreaming} />
+      <MessageInput
+        onSend={handleSend}
+        disabled={isStreaming}
+        activeMode={activeMode}
+        onModeChange={onModeChange}
+      />
     </div>
   );
 }

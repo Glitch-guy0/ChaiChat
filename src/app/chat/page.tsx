@@ -6,13 +6,29 @@ import { useSearchParams } from "next/navigation";
 import { ChatArea } from "../../components/chat/chat-area";
 
 /**
+ * Persona avatar URLs used across the chat page.
+ *
+ * @example
+ * ```tsx
+ * <img src={PERSONA_AVATARS.hitesh} alt="Hitesh" />
+ * ```
+ */
+const PERSONA_AVATARS: Readonly<Record<string, string>> = {
+  hitesh:
+    "https://images.unsplash.com/photo-1633332755192-727a05c4013d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3OTAzMTh8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3J0cmFpdHxlbnwxfHx8fDE3NTQ5MjM3Nzd8MA&ixlib=rb-4.1.0&q=80&w=100",
+  piyush:
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3OTAzMTh8MHwxfHNlYXJjaHwxfHxtYW4lMjBmYWNlfGVufDF8fHx8MTc1NDkyMzc3N3ww&ixlib=rb-4.1.0&q=80&w=100",
+};
+
+/**
  * Chat page — the main conversation interface.
  *
  * Reads the initial persona from the `persona` query parameter
  * (e.g. `/chat?persona=piyush`), falling back to `hitesh`.
  *
- * Three-zone layout: top bar (persona switcher + mode selector),
- * chat area (messages + input).
+ * Layout matches reference design: top glow, header bar,
+ * persona switcher with avatars, centered chat area, and
+ * input bar with integrated mode selector.
  */
 function ChatContent() {
   const searchParams = useSearchParams();
@@ -22,69 +38,57 @@ function ChatContent() {
   const [activeMode, setActiveMode] = useState("normal");
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-950 text-neutral-100">
-      {/* Top Bar */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-sm">
-        <Link
-          href="/"
-          className="text-neutral-400 hover:text-neutral-200 transition-colors text-sm"
-        >
-          ← ChaiChat
-        </Link>
+    <div className="chat-page">
+      {/* Radial gradient glow at top */}
+      <div className="chat-top-glow" aria-hidden="true" />
 
-        <div className="flex items-center gap-4">
-          {/* Persona Switcher */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActivePersona("hitesh")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                activePersona === "hitesh"
-                  ? "bg-green-600/20 text-green-400 ring-1 ring-green-500/30"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              🍵 Hitesh
-            </button>
-            <button
-              onClick={() => setActivePersona("piyush")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                activePersona === "piyush"
-                  ? "bg-purple-600/20 text-purple-400 ring-1 ring-purple-500/30"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              🚀 Piyush
-            </button>
-          </div>
+      <div className="chat-container">
+        {/* Header */}
+        <header className="chat-header">
+          <Link href="/" className="chat-header-logo">
+            <span className="chat-header-logo-icon">🍵</span>
+            <span className="chat-header-logo-text">ChaiChat</span>
+          </Link>
+        </header>
 
-          {/* Mode Selector */}
-          <div className="flex gap-1 bg-neutral-800 rounded-lg p-0.5">
-            <button
-              onClick={() => setActiveMode("normal")}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                activeMode === "normal"
-                  ? "bg-neutral-700 text-neutral-100"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              Normal
-            </button>
-            <button
-              onClick={() => setActiveMode("drunk")}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                activeMode === "drunk"
-                  ? "bg-neutral-700 text-neutral-100"
-                  : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              Drunk
-            </button>
-          </div>
+        {/* Persona Switcher */}
+        <div className="chat-persona-switcher">
+          <button
+            onClick={() => setActivePersona("hitesh")}
+            className={`chat-persona-btn ${
+              activePersona === "hitesh" ? "chat-persona-btn--active" : ""
+            }`}
+          >
+            <img
+              src={PERSONA_AVATARS.hitesh}
+              alt="Hitesh"
+              className="chat-persona-avatar"
+            />
+            <span className="chat-persona-name">Hitesh</span>
+          </button>
+          <button
+            onClick={() => setActivePersona("piyush")}
+            className={`chat-persona-btn ${
+              activePersona === "piyush" ? "chat-persona-btn--active" : ""
+            }`}
+          >
+            <img
+              src={PERSONA_AVATARS.piyush}
+              alt="Piyush"
+              className="chat-persona-avatar"
+            />
+            <span className="chat-persona-name">Piyush</span>
+          </button>
         </div>
-      </header>
 
-      {/* Chat Area */}
-      <ChatArea activePersona={activePersona} activeMode={activeMode} />
+        {/* Chat Area */}
+        <ChatArea
+          activePersona={activePersona}
+          activeMode={activeMode}
+          onModeChange={setActiveMode}
+          personaAvatarUrl={PERSONA_AVATARS[activePersona] || PERSONA_AVATARS.hitesh}
+        />
+      </div>
     </div>
   );
 }
@@ -96,8 +100,10 @@ export default function ChatPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-screen items-center justify-center bg-neutral-950 text-neutral-400">
-          Loading...
+        <div className="chat-page">
+          <div className="chat-container" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+            <span style={{ color: "#a1a1a1" }}>Loading...</span>
+          </div>
         </div>
       }
     >

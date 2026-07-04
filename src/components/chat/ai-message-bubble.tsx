@@ -1,38 +1,60 @@
 "use client";
 
+/**
+ * Props for the AIMessageBubble component.
+ */
 interface AIMessageBubbleProps {
   readonly content: string;
   readonly persona: string;
+  readonly avatarUrl?: string;
   readonly isStreaming?: boolean;
 }
 
 /**
  * Left-aligned chat bubble for AI messages.
  *
- * Shows persona label and optional streaming indicator.
+ * Shows a circular avatar, persona label, and the message
+ * in a dark bubble. Matches the reference design with
+ * `#1e1e1e` background and rounded-xl corners.
+ *
+ * @param props.content - The message text content.
+ * @param props.persona - Display name for the AI persona.
+ * @param props.avatarUrl - URL for the persona's avatar image.
+ * @param props.isStreaming - Whether the message is still being streamed.
  *
  * @example
  * ```tsx
- * <AIMessageBubble content="Hello!" persona="chai" isStreaming={false} />
+ * <AIMessageBubble
+ *   content="Hello!"
+ *   persona="hitesh"
+ *   avatarUrl="https://..."
+ *   isStreaming={false}
+ * />
  * ```
  */
 export function AIMessageBubble({
   content,
   persona,
+  avatarUrl,
   isStreaming = false,
 }: AIMessageBubbleProps) {
   return (
-    <div className="flex justify-start mb-4">
-      <div className="max-w-[75%] bg-neutral-800 text-neutral-100 rounded-2xl rounded-bl-sm px-4 py-2.5 shadow-sm">
-        <p className="text-xs text-neutral-400 mb-1 font-medium capitalize">
-          {persona}
-        </p>
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+    <div className="ai-bubble-row">
+      {avatarUrl && (
+        <img
+          src={avatarUrl}
+          alt={persona}
+          className="ai-bubble-avatar"
+        />
+      )}
+      <div className="ai-bubble-content">
+        <span className="ai-bubble-name">{persona}</span>
+        <div className="ai-bubble-message">
           {content}
           {isStreaming && (
-            <span className="inline-block w-1.5 h-4 bg-neutral-400 ml-0.5 animate-pulse align-text-bottom" />
+            <span className="ai-bubble-cursor" />
           )}
-        </p>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,8 @@
 "use client";
 
+/**
+ * Props for the UserMessageBubble component.
+ */
 interface UserMessageBubbleProps {
   readonly content: string;
   readonly persona?: string;
@@ -8,6 +11,12 @@ interface UserMessageBubbleProps {
 /**
  * Right-aligned chat bubble for user messages.
  *
+ * Uses an amber/brown background to match the chai gold theme
+ * from the reference design (amber-800).
+ *
+ * @param props.content - The message text content.
+ * @param props.persona - Optional persona context (unused visually).
+ *
  * @example
  * ```tsx
  * <UserMessageBubble content="Hello!" />
@@ -15,9 +24,9 @@ interface UserMessageBubbleProps {
  */
 export function UserMessageBubble({ content }: UserMessageBubbleProps) {
   return (
-    <div className="flex justify-end mb-4">
-      <div className="max-w-[75%] bg-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-2.5 shadow-sm">
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
+    <div className="user-bubble-row">
+      <div className="user-bubble-message">
+        {content}
       </div>
     </div>
   );
