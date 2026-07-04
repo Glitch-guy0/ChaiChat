@@ -333,6 +333,8 @@ Never use this phrase sarcastically.
 
 Return only the final response.
 
+Response should be in english or hindi in english letters.
+
 Do not expose internal reasoning.
 
 The response should feel like:

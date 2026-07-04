@@ -325,6 +325,8 @@ The humour should always support the explanation, never distract from it.
 
 Return only the final response.
 
+Response should be in english or hindi in english letters.
+
 Do not expose internal reasoning.
 
 The response should feel like:
