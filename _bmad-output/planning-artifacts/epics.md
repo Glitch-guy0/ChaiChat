@@ -1,8 +1,21 @@
 ---
-stepsCompleted: ["step-01-validate-prerequisites", "step-02-design-epics"]
+stepsCompleted:
+  - step-01-validate-prerequisites
+  - step-02-design-epics
+  - architecture-review-winston
 inputDocuments:
   - prds/prd-ChaiChat-2026-07-04/prd.md
   - backend-architecture.md
+architectureReview:
+  reviewer: Winston
+  date: 2026-07-04
+  changes:
+    - M1: added tsc --noEmit verification
+    - M2: Redis consolidated from M7 into M2
+    - M2/M4/M7: per-use-case error types added
+    - M8: JSDoc lint enforcement instead of cleanup pass
+    - M2/M3: noted as parallelizable
+    - .env.example created with all required vars
 ---
 
 # ChaiChat - Epic Breakdown
@@ -67,7 +80,7 @@ NFR10: Error handling — explicit error types, no swallowed errors, documented 
 
 ### Milestone 1: Foundation — Domain & Port Contracts
 
-**Verify by:** All TypeScript interfaces, types, and enums compile. No implementation yet.
+**Verify by:** `tsc --noEmit` passes with zero errors. All interfaces, types, and enums defined and compiling.
 
 | Epic | Stories | FRs |
 |---|---|---|
@@ -78,19 +91,23 @@ NFR10: Error handling — explicit error types, no swallowed errors, documented 
 - Create src/ports/ with all driven port interfaces: IChatSessionRepository, ILLMService, ILocationService, IMetricsLogger, IPersonaCatalog
 - Create src/domain/ with domain models: ChatSession
 - Create src/application/ports/ with use-case interfaces: IAuthUseCase, IChatUseCase, IConversationUseCase
-- Full JSDoc on every exported symbol
+- JSDoc on every exported symbol as it's written
+- Add TypeScript strict mode checks to tsconfig
+- Smoke test: `tsc --noEmit` in CI / pre-commit
 
 ---
 
-### Milestone 2: Session Auth
+### Milestone 2: Session Auth & Redis
 
-**Verify by:** POST /api/auth returns 204 with Set-Cookie header. JWT decodes correctly.
+**Verify by:** POST /api/auth returns 204 with Set-Cookie header. Session persisted in Redis. JWT decodes correctly.
 
 | Epic | Stories | FRs |
 |---|---|---|
 | M2-S1 | Implement Landing page auth trigger | FR1 |
 | M2-S2 | Build AuthUseCase with JWT signing | FR2 |
-| M2-S3 | Create Auth API route | FR1, FR2 |
+| M2-S3 | Set up Redis connection and session repository | FR8 |
+| M2-S4 | Create Auth API route | FR1, FR2 |
+| M2-S5 | Add AuthError types and error handling | NFR10 |
 
 **Scope:**
 - Landing page (page.tsx) fires POST /api/auth on mount with uuidv4 userId
@@ -98,7 +115,13 @@ NFR10: Error handling — explicit error types, no swallowed errors, documented 
 - AuthUseCase implementing IAuthUseCase
 - POST /api/auth route adapter
 - HTTP-only cookie injection
-- .env configuration for JWT secret
+- Redis client setup with .env configuration
+- RedisSessionRepository with saveSession (empty session on auth)
+- 1-hour TTL aligned with JWT expiry
+- AuthError class with typed error cases (JwtSignError, RedisConnectionError, etc.)
+- .env.example created with all required vars
+
+**Testing:** curl / Postman — POST /api/auth → 204 + Set-Cookie. Verify JWT at jwt.io. Verify Redis key exists with TTL.
 
 ---
 
@@ -123,7 +146,7 @@ NFR10: Error handling — explicit error types, no swallowed errors, documented 
 
 ### Milestone 4: Chat Backend
 
-**Verify by:** POST /api/chat streams token chunks. Persona and mode affect response. Tokens counted.
+**Verify by:** POST /api/chat streams token chunks. Persona and mode affect response. Tokens counted. Errors return typed responses.
 
 | Epic | Stories | FRs |
 |---|---|---|
@@ -131,14 +154,18 @@ NFR10: Error handling — explicit error types, no swallowed errors, documented 
 | M4-S2 | Build ChatUseCase with persona/mode resolution | FR6, FR7 |
 | M4-S3 | Integrate tiktoken token counting | FR10 |
 | M4-S4 | Create Chat API route with SSE streaming | FR6 |
+| M4-S5 | Add ChatError types and streaming error handling | NFR10 |
 
 **Scope:**
 - OpenAILLMService implementing ILLMService with streaming
 - tiktoken integration for prompt/response token counting
 - ChatUseCase: load session, resolve persona, build options, stream, append, save
 - POST /api/chat with SSE response
-- Error handling: 401, 502, mid-stream failures
+- ChatError types: LLMProviderError, StreamInterruptedError, SessionLoadError, TokenCountError
+- Error responses: 401 (no auth), 502 (provider down), stream closed with error metadata
 - Logger integration via IMetricsLogger
+
+**Testing:** curl — POST /api/chat with auth cookie → streaming token output. Provoke 502 by using bad API key. Verify tiktoken counts in logs.
 
 ---
 
@@ -187,37 +214,40 @@ NFR10: Error handling — explicit error types, no swallowed errors, documented 
 
 ### Milestone 7: Conversation Persistence
 
-**Verify by:** Refresh preserves conversation. GET /api/conversation returns messages. New session starts fresh.
+**Verify by:** Refresh preserves conversation. GET /api/conversation returns messages. New session starts fresh. Errors return typed responses.
 
 | Epic | Stories | FRs |
 |---|---|---|
-| M7-S1 | Implement Redis connection and session repository | FR8 |
-| M7-S2 | Build ConversationUseCase | FR9 |
-| M7-S3 | Create Conversation API route | FR9 |
-| M7-S4 | Wire history restore into chat page on load | FR8, FR9 |
+| M7-S1 | Build ConversationUseCase | FR9 |
+| M7-S2 | Create Conversation API route | FR9 |
+| M7-S3 | Wire history restore into chat page on load | FR8, FR9 |
+| M7-S4 | Add SessionError types and conversation error handling | NFR10 |
 
 **Scope:**
-- Redis client setup with .env configuration
-- RedisSessionRepository with getSession / saveSession
-- 1-hour TTL aligned with JWT expiry
 - ConversationUseCase implementing IConversationUseCase
-- GET /api/conversation route
+- GET /api/conversation route (Redis already set up in M2)
+- SessionError types: SessionNotFoundError, DeserializationError
 - Frontend fetches conversation on /chat mount
-- Session saved after each chat completion (Epic 4 hookup)
+- Session saved after each chat completion (hooked into M4 chat flow)
+- Graceful degradation: missing/expired session returns empty conversation, not error
+- 401 for expired/missing JWT
+- Error responses: missing session → empty array (not error), Redis failure → empty array + log
+
+**Testing:** Send messages, refresh page → history restored. Clear Redis key → empty conversation returned. Expire cookie → 401.
 
 ---
 
 ### Milestone 8: Observability & Polish
 
-**Verify by:** Pino logs structured JSON. Errors reported to Better Stack. JSDoc complete on all symbols.
+**Verify by:** Pino logs structured JSON. Errors reported to Better Stack. `tsc --noEmit` passes with full JSDoc coverage.
 
 | Epic | Stories | FRs |
 |---|---|---|
 | M8-S1 | Implement PinoBetterStackLogger | FR11, FR12 |
 | M8-S2 | Integrate location lookup via ip-api.com | FR3 |
 | M8-S3 | Wire logging across all use cases | FR11 |
-| M8-S4 | Complete JSDoc on all exported symbols | NFR2-NFR5 |
-| M8-S5 | Error boundary polish and README | NFR10 |
+| M8-S4 | Add `no-undocumented-exports` lint check | NFR2-NFR5 |
+| M8-S5 | Final README and .env.example audit | — |
 
 **Scope:**
 - PinoBetterStackLogger implementing IMetricsLogger
@@ -226,10 +256,21 @@ NFR10: Error handling — explicit error types, no swallowed errors, documented 
 - Sentry DSN integration for error reporting
 - Token usage logged per session
 - Location metadata logged during auth (optional, degrades gracefully)
-- JSDoc audit pass on every exported class, interface, type, function, method
-- Final README update with architecture overview
+- ESLint rule or pre-commit hook ensuring no undocumented exports
+- JSDoc written as code is developed (enforced by lint check, not a cleanup pass)
+- Final README update with architecture overview and setup instructions
+- .env.example verified complete against all runtime deps
+
+**Testing:** Trigger each flow (auth, chat, conversation) → verify structured JSON in stdout. Provoke error → verify Sentry/Sentry DSN receives it. Run lint → verify undocumented exports fail.
 
 ---
+
+## Dependency & Parallelization Notes
+
+- **M2 and M3 are independent** — both depend only on M1. Can be built in parallel by different developers.
+- **Redis setup consolidated** — moved from M7 into M2 so the session layer is complete from the start.
+- **Error handling built per-use-case** — M2 (AuthError), M4 (ChatError), M7 (SessionError). M8 only adds Sentry forwarding.
+- **JSDoc is a continuous discipline** — written as code is written, enforced by a `no-undocumented-exports` lint check in M8.
 
 ## FR Coverage Map
 
