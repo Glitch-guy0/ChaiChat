@@ -276,3 +276,21 @@ Initial mapping:
 | `DRUNK` | `0.5` | Looser, more varied persona response |
 
 Future LLM controls must be added to `IChatGenerationOptions` and the builder implementation. The `IChatUseCase` flow should remain stable unless the user-facing conversation behavior itself changes.
+
+### 4.3 Backend Runtime Contract
+
+The backend runtime follows a fixed set of flows so the hexagonal boundaries remain stable:
+
+- `POST /api/auth` initializes a lightweight session, resolves optional location metadata, stores an empty session in Redis, and returns the JWT cookie.
+- `GET /api/conversation` validates the auth cookie, derives the session key, and restores the retained conversation history from Redis.
+- `POST /api/chat` validates the auth cookie, loads the session history, resolves the selected persona prompt, maps the selected mode into generation options, streams the LLM response, appends the assistant message, and persists the updated session.
+- Errors remain adapter-scoped. The core emits explicit failure states instead of handling infrastructure details directly.
+- Routes depend on use cases. Use cases depend on ports. Infrastructure adapters implement ports.
+
+### 4.4 Boundary Summary
+
+- Primary adapters: HTTP routes for auth, chat, and conversation.
+- Application core: auth, conversation, and chat use cases plus the generation-options builder.
+- Domain contracts: session, message, persona, mode, generation options, and chat completion request.
+- Driven ports: session repository, LLM service, location service, metrics logger, and persona catalog.
+- Infrastructure adapters: Redis, OpenAI, IP-API, file-backed persona prompts, and structured logging.
