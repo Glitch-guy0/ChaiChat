@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ChaiChat - Premium Conversation Platform",
-  description: "Connect and converse beautifully with ChaiChat, a modern real-time messaging application.",
+  title: "ChaiChat",
+  description: "Connect and converse with your favorite mentors.",
 };
 
 export default function RootLayout({
