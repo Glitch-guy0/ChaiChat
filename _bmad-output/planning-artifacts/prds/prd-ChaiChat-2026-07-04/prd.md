@@ -1,5 +1,5 @@
 ---
-title: "ChaiChat — Dual-Persona AI Chat Application PRD"
+title: "ChaiChat — Hexagonal Architecture & Telemetry Update PRD"
 status: draft
 created: 2026-07-04
 updated: 2026-07-04
@@ -11,51 +11,140 @@ author: John (Product Manager)
 ## 1. Document Control & Overview
 
 - **Title:** ChaiChat — Dual-Persona AI Chat Application
-- **Status:** Draft (Pending Review)
+- **Status:** Draft (Hexagonal Update)
 - **Author:** John (Product Manager)
 - **Date:** 2026-07-04
-- **Target Version:** 1.0.0 (Final)
+- **Target Version:** 1.1.0
 
 ---
 
 ## 2. Product Vision & Goals
 
-ChaiChat is a high-fidelity, architecture-heavy showcase application. It demonstrates modern Next.js and TypeScript engineering patterns, including SOLID principles, dependency injection, and clean observability, through a simple two-page conversation interface.
-
-### 2.1 Success Metrics
-- **Performance:** Page load time under 1 second; streaming latency (Time to First Token) under 500ms.
-- **Architectural Quality:** Zero circular dependencies; 100% compliance with strict SOLID principles; full JSDoc coverage on all public interfaces and service contracts.
-- **Extensibility:** Swapping or adding new personas requires editing only a configuration file, without modifying component code or service logic.
+ChaiChat is a high-fidelity, architecture-heavy showcase application. It demonstrates modern Next.js and TypeScript engineering patterns, including Hexagonal Architecture, dependency injection, session tracking, and telemetry observation.
 
 ---
 
-## 3. User Experience & Core Flows
+## 3. Core Functional Requirements (FR)
 
-ChaiChat is a single-user, session-based application. Conversation history is ephemeral and resides strictly in memory (lost on page refresh).
+### FR-1: Landing Page & Auth Initialization
+- **Auth Endpoint:** When a user visits `/`, the frontend triggers a `POST` request to the backend user authentication token generator.
+- **User Identification:**
+  - Retrieve the incoming request's `user-agent`.
+  - Frontend generates a unique `uuidv4` identifier and passes it via the `new-user` header.
+- **JWT Generation:**
+  - Generate a secure JWT token on the backend signed by a private key (generated from a unique string initialized at startup).
+  - JWT Payload: `{ "user-agent": string, "userid": string, "createdAt": number }`.
+  - Expiry: 1 hour.
+- **Cookie Injection:** The generated JWT is stored as an HTTP-only cookie named `Authentication`. No frontend persistence is required.
 
-### 3.1 Flow 1: Landing Page (Persona Selection)
-- **Page Route:** `/`
-- **UI Layout:** Split-screen or card-based layout featuring the two default personas: **Chai** (warm mentor) and **Espresso** (sharp wit).
-- **Interactions:** Clicking either card pre-selects that persona and navigates the user to the chat page.
+### FR-2: Active Persona Switcher
+- **Available Personas:** Configured as an enum: `"hitesh"` and `"piyush"`.
+- **System Prompt Loading:** Loaded dynamically from a file at `{project-root}/persona/[persona-name].md`.
+- **Header Selection:** Selectable headers at the top of the chat area. Switching active personas mid-chat does **not** reset the conversation history.
 
-### 3.2 Flow 2: Chat Interface (WhatsApp-Style)
-- **Page Route:** `/chat`
-- **Top Header:** Display selectors for the two personas. Clicking a persona switches the active talker immediately without resetting the current conversation stream.
-- **Left Control:** An hoverable dropdown displaying "Normal" and "Drunk" mode options. Switching modes updates the style of all subsequent messages.
-- **Message List:** WhatsApp style. User messages are right-aligned; AI messages are left-aligned. Bubbles show message text, timestamp, and tails.
-- **Footer:** Input text box and a Send button. Pressing Enter or clicking Send initiates the response stream.
+### FR-3: Ephemeral Chat & Switchable Modes
+- **Chat Endpoint:** `POST /api/chat` with user prompt.
+- **Modes:** "Normal" and "Drunk". Managed on hover on the left side of the input.
+- **History Format:**
+  - User messages: `{ user: "..." }`
+  - Assistant messages: `{ assistant: "[persona]: ..." }` (e.g. `{ assistant: "hitesh: hello" }`).
+- **Session Fetching:** `GET /api/conversation` fetches the conversation history if exists.
+
+### FR-4: Session Persistence (Redis)
+- **Storage:** Sessions and message histories are persisted in Redis using the JWT token or its hash as the key.
+- **TTL:** The Redis session expires after 1 hour.
+
+### FR-5: Telemetry, Metrics, and Error Reporting
+- **Location Lookup:** During JWT generation, resolve the user's location by querying the `ip-api.com` API:
+  - Endpoint: `http://ip-api.com/json/{userIp}?fields=status,message,country,regionName,city`
+  - If successful, log metadata containing the user's country, regionName, and city.
+- **Token Tracking:** Count tokens consumed for each prompt and response using `tiktoken`, and log usage against the JWT token ID.
+- **Observability Stack:**
+  - Logs: Output structured JSON via `pino`.
+  - Errors: Better Stack Error tracking using Sentry SDK. DSN: `https://ozuB5c9buT43aC7xidTnZ6j3@s2572663.eu-nbg-2.betterstackdata.com/2572665`.
 
 ---
 
-## 4. Technical Architecture & TypeScript Contracts
+## 4. Architectural Specification (Hexagonal Design)
 
-To ensure compliance with the workspace's engineering standards, all core domains must be governed by strict contracts and interfaces.
+The system adheres to Hexagonal Architecture (Ports and Adapters) to separate core business logic from external drivers and systems (Redis, Sentry, IP-API, OpenAI).
 
-### 4.1 Data Models & Interfaces
+```mermaid
+graph TD
+    subgraph Primary Adapters (UI / Web)
+        NextPage["Next.js Pages (/, /chat)"]
+        AuthRoute["POST /api/auth"]
+        ChatRoute["POST /api/chat"]
+        ConvRoute["GET /api/conversation"]
+    end
+
+    subgraph Driving Ports
+        IAuthPort["IAuthUseCase"]
+        IChatPort["IChatUseCase"]
+    end
+
+    subgraph Core Domain (Hexagon)
+        DomainModel["Domain Models: ChatSession, Message, Persona"]
+        AuthUseCase["AuthUseCaseImpl"]
+        ChatUseCase["ChatUseCaseImpl"]
+    end
+
+    subgraph Driven Ports
+        IRepositoryPort["IChatSessionRepository"]
+        ILLMPort["ILLMService"]
+        ILocationPort["ILocationService"]
+        ILoggerPort["IMetricsLogger"]
+    end
+
+    subgraph Secondary Adapters (Infrastructure)
+        RedisRepo["RedisSessionRepository (Redis DB)"]
+        OpenAIGateway["OpenAILLMService (OpenAI SDK + Tiktoken)"]
+        IpApiLocation["IpApiLocationService (ip-api.com)"]
+        SentryLogger["PinoBetterStackLogger (BetterStack + Sentry DSN)"]
+    end
+
+    %% Connections
+    NextPage --> AuthRoute
+    NextPage --> ChatRoute
+    NextPage --> ConvRoute
+
+    AuthRoute --> IAuthPort
+    ChatRoute --> IChatPort
+    ConvRoute --> IChatPort
+
+    IAuthPort --> AuthUseCase
+    IChatPort --> ChatUseCase
+
+    AuthUseCase --> DomainModel
+    ChatUseCase --> DomainModel
+
+    AuthUseCase --> ILocationPort
+    AuthUseCase --> ILoggerPort
+    AuthUseCase --> IRepositoryPort
+
+    ChatUseCase --> IRepositoryPort
+    ChatUseCase --> ILLMPort
+    ChatUseCase --> ILoggerPort
+
+    IRepositoryPort --> RedisRepo
+    ILLMPort --> OpenAIGateway
+    ILocationPort --> IpApiLocation
+    ILoggerPort --> SentryLogger
+```
+
+### 4.1 TypeScript Ports & Domain Contracts
 
 ```typescript
 /**
- * Represents the conversational tone modes available in ChaiChat.
+ * Enum of all available personas in the application.
+ */
+export enum PersonaName {
+  HITESH = "hitesh",
+  PIYUSH = "piyush",
+}
+
+/**
+ * Tone modes for the conversation style.
  */
 export enum ChatMode {
   NORMAL = "NORMAL",
@@ -63,111 +152,68 @@ export enum ChatMode {
 }
 
 /**
- * Defines the core structure of a user persona.
- */
-export interface IPersona {
-  readonly id: string;
-  readonly name: string;
-  readonly avatar: string;
-  readonly tagline: string;
-  readonly systemPromptNormal: string;
-  readonly systemPromptDrunk: string;
-}
-
-/**
- * Represents a single message in the chat history.
+ * Data structure representing a chat message.
  */
 export interface IMessage {
-  readonly id: string;
   readonly sender: "user" | "ai";
-  readonly personaId: string;
-  readonly mode: ChatMode;
+  readonly persona: PersonaName;
   readonly content: string;
-  readonly timestamp: Date;
 }
-```
 
-### 4.2 Service Contracts (SOLID Abstractions)
-
-```typescript
 /**
- * Gateway contract for communicating with the LLM provider.
+ * Geolocation metadata resolved from user IP.
  */
-export interface ILLMGateway {
+export interface ILocationMetadata {
+  readonly city: string;
+  readonly regionName: string;
+  readonly country: string;
+}
+
+/**
+ * JWT payload structures for authenticated users.
+ */
+export interface IAuthTokenPayload {
+  readonly userAgent: string;
+  readonly userId: string;
+  readonly createdAt: number;
+}
+
+/**
+ * Port representing the repository for storage of chat sessions.
+ */
+export interface IChatSessionRepository {
   /**
-   * Generates a streaming response from the LLM based on system prompt and history.
-   *
-   * @param systemPrompt Instructions for the LLM.
-   * @param history Previous messages in the conversation.
-   * @returns An async generator yielding chunks of the response.
-   *
-   * @throws {LLMConnectionError} If connection to the provider fails.
-   *
-   * @example
-   * ```ts
-   * const stream = await gateway.streamResponse("You are helpful.", history);
-   * for await (const chunk of stream) {
-   *   console.log(chunk);
-   * }
-   * ```
+   * Fetches the conversation history for a given token hash.
    */
-  streamResponse(
+  getSession(tokenHash: string): Promise<IMessage[]>;
+
+  /**
+   * Saves or updates the conversation history with an expiration TTL of 1 hour.
+   */
+  saveSession(tokenHash: string, conversation: IMessage[]): Promise<void>;
+}
+
+/**
+ * Port for resolving user location via external IP services.
+ */
+export interface ILocationService {
+  /**
+   * Resolves location coordinates/metadata from an IP address.
+   */
+  resolveLocation(ip: string): Promise<ILocationMetadata | null>;
+}
+
+/**
+ * Port for managing interactions with the LLM gateway.
+ */
+export interface ILLMService {
+  /**
+   * Generates a streaming response for the selected persona.
+   */
+  stream(
     systemPrompt: string,
-    history: IMessage[]
-  ): Promise<AsyncIterable<string>>;
-}
-
-/**
- * Service contract for managing personas.
- */
-export interface IPersonaService {
-  /**
-   * Retrieves all available personas.
-   *
-   * @returns List of defined personas.
-   */
-  getPersonas(): Promise<IPersona[]>;
-
-  /**
-   * Retrieves a persona by its unique identifier.
-   *
-   * @param id The persona id.
-   * @returns The persona or null if not found.
-   */
-  getPersonaById(id: string): Promise<IPersona | null>;
-}
-
-/**
- * Service contract for orchestrating the chat conversation and state.
- */
-export interface IChatService {
-  /**
-   * Sends a user message and returns a stream of the AI's response.
-   *
-   * @param userMessageText The text sent by the user.
-   * @param activePersona The selected persona.
-   * @param mode The selected chat mode.
-   * @param currentHistory Existing chat session messages.
-   * @returns Async generator stream containing the response chunks.
-   *
-   * @example
-   * ```ts
-   * const responseStream = await chatService.sendMessage("Hello", persona, ChatMode.NORMAL, history);
-   * ```
-   */
-  sendMessage(
-    userMessageText: string,
-    activePersona: IPersona,
-    mode: ChatMode,
-    currentHistory: IMessage[]
+    history: IMessage[],
+    activePersona: PersonaName
   ): Promise<AsyncIterable<string>>;
 }
 ```
-
----
-
-## 5. Non-Functional & Architecture Requirements
-
-1. **Dependency Injection:** Construct all controllers or page models using constructor-injected services. No service instances should be created using `new` directly inside UI files or page controllers.
-2. **Observability:** Use `pino` to write structured, level-based logs. Integrate OpenTelemetry trace spans around `ILLMGateway.streamResponse` and `IChatService.sendMessage` transactions.
-3. **CSS System:** Integrate Tailwind CSS v4 alongside modular design custom tokens in `globals.css` to build glassmorphism layers, floating cards, and animated indicators.
