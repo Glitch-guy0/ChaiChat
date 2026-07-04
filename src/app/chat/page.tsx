@@ -16,7 +16,7 @@ import { ChatArea } from "../../components/chat/chat-area";
  * ```
  */
 export default function ChatPage() {
-  const [activePersona, setActivePersona] = useState("chai");
+  const [activePersona, setActivePersona] = useState("hitesh");
   const [activeMode, setActiveMode] = useState("normal");
 
   return (
@@ -34,24 +34,24 @@ export default function ChatPage() {
           {/* Persona Switcher */}
           <div className="flex gap-2">
             <button
-              onClick={() => setActivePersona("chai")}
+              onClick={() => setActivePersona("hitesh")}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                activePersona === "chai"
-                  ? "bg-amber-600/20 text-amber-400 ring-1 ring-amber-500/30"
+                activePersona === "hitesh"
+                  ? "bg-green-600/20 text-green-400 ring-1 ring-green-500/30"
                   : "text-neutral-400 hover:text-neutral-200"
               }`}
             >
-              ☕ Chai
+              🍵 Hitesh
             </button>
             <button
-              onClick={() => setActivePersona("espresso")}
+              onClick={() => setActivePersona("piyush")}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                activePersona === "espresso"
-                  ? "bg-orange-600/20 text-orange-400 ring-1 ring-orange-500/30"
+                activePersona === "piyush"
+                  ? "bg-purple-600/20 text-purple-400 ring-1 ring-purple-500/30"
                   : "text-neutral-400 hover:text-neutral-200"
               }`}
             >
-              ⚡ Espresso
+              🚀 Piyush
             </button>
           </div>
 
