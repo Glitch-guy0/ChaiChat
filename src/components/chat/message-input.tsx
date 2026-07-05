@@ -42,14 +42,23 @@ export function MessageInput({
   onModeChange,
 }: MessageInputProps) {
   const [value, setValue] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-focus input when component mounts or when re-enabled
   useEffect(() => {
     if (!disabled) {
-      inputRef.current?.focus();
+      textareaRef.current?.focus();
     }
   }, [disabled]);
+
+  // Auto-resize textarea height up to 4 rows
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [value]);
 
   // Global keydown event to focus input when user starts typing
   useEffect(() => {
@@ -68,7 +77,7 @@ export function MessageInput({
 
       // Check if pressed key is a single character (printable character)
       if (e.key.length === 1) {
-        inputRef.current?.focus();
+        textareaRef.current?.focus();
       }
     };
 
@@ -86,7 +95,7 @@ export function MessageInput({
   }, [value, disabled, onSend]);
 
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSend();
@@ -98,15 +107,16 @@ export function MessageInput({
   return (
     <div className="chat-input-bar">
       {/* Text Input */}
-      <input
-        ref={inputRef}
-        type="text"
+      <textarea
+        ref={textareaRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Type a message…"
         disabled={disabled}
         className="chat-input-field"
+        rows={1}
+        maxLength={500}
       />
 
       {/* Send Button */}
